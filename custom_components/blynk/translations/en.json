@@ -1,0 +1,47 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Blynk Cloud Connection",
+                "description": "Please enter your Blynk token and update interval.",
+                "data": {
+                    "token": "Blynk Token",
+                    "scan_interval": "Update Interval (seconds)"
+                }
+            },
+            "pin_config": {
+                "title": "Pin Configuration",
+                "description": "Configure pin {pin} (Current value: {value})",
+                "data": {
+                    "pin_type": "Pin Type",
+                    "pin_name": "Pin Name"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect to Blynk Cloud",
+            "invalid_auth": "Invalid authentication token",
+            "no_pins_found": "No active pins found on device"
+        },
+        "abort": {
+            "already_configured": "Device is already configured"
+        }
+    },
+    "entity": {
+        "sensor": {
+            "blynk_sensor": {
+                "name": "Blynk Sensor"
+            }
+        },
+        "binary_sensor": {
+            "blynk_binary_sensor": {
+                "name": "Blynk Binary Sensor"
+            }
+        },
+        "switch": {
+            "blynk_switch": {
+                "name": "Blynk Switch"
+            }
+        }
+    }
+}
