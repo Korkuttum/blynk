@@ -1,0 +1,11 @@
+{
+  "domain": "blynk",
+  "name": "Blynk",
+  "documentation": "https://github.com/yourusername/ha-blynk",
+  "dependencies": [],
+  "codeowners": ["@Korkuttum"],
+  "requirements": ["aiohttp"],
+  "iot_class": "cloud_polling",
+  "version": "1.0.0",
+  "config_flow": true
+}
