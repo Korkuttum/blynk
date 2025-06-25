@@ -1,0 +1,47 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Blynk Cloud Bağlantısı",
+                "description": "Lütfen Blynk token ve güncelleme aralığını girin.",
+                "data": {
+                    "token": "Blynk Token",
+                    "scan_interval": "Güncelleme Aralığı (saniye)"
+                }
+            },
+            "pin_config": {
+                "title": "Pin Yapılandırması",
+                "description": "Pin {pin} yapılandırması (Mevcut değer: {value})",
+                "data": {
+                    "pin_type": "Pin Tipi",
+                    "pin_name": "Pin İsmi"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Blynk Cloud'a bağlanılamadı",
+            "invalid_auth": "Geçersiz kimlik doğrulama token'ı",
+            "no_pins_found": "Cihazda aktif pin bulunamadı"
+        },
+        "abort": {
+            "already_configured": "Cihaz zaten yapılandırılmış"
+        }
+    },
+    "entity": {
+        "sensor": {
+            "blynk_sensor": {
+                "name": "Blynk Sensör"
+            }
+        },
+        "binary_sensor": {
+            "blynk_binary_sensor": {
+                "name": "Blynk İkili Sensör"
+            }
+        },
+        "switch": {
+            "blynk_switch": {
+                "name": "Blynk Anahtar"
+            }
+        }
+    }
+}
