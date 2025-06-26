@@ -49,3 +49,7 @@ If you find this integration helpful, consider supporting the development:
 ## License
 
 MIT License - See [LICENSE](LICENSE) file for details.
+
+## Disclaimer
+
+This integration is an independent project and is not affiliated with, endorsed by, or connected to Blynk Inc. in any way. This is a community project provided "as is" without warranty of any kind. Use at your own risk.
