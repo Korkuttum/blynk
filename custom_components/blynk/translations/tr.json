@@ -27,6 +27,16 @@
             "already_configured": "Cihaz zaten yapılandırılmış"
         }
     },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "scan_interval": "Güncelleme Aralığı (saniye)"
+                },
+                "title": "Blynk Seçenekleri"
+            }
+        }
+    },
     "entity": {
         "sensor": {
             "blynk_sensor": {
