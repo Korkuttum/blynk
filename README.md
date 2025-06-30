@@ -14,6 +14,8 @@ This integration is designed to manage your IoT projects through the Blynk platf
 2. Create a new project
 3. Note your Auth Token
 
+[![Home Assistant ile HACS üzerinden bu entegrasyonu ekle](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Korkuttum&repository=blynk&category=integration)
+
 ### Method 1: HACS Installation (Recommended)
 1. Make sure you have [HACS](https://hacs.xyz/) installed
 2. Go to HACS > Integrations
