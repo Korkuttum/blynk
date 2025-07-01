@@ -2,26 +2,40 @@
     "config": {
         "step": {
             "user": {
-                "title": "Blynk Cloud Connection",
-                "description": "Please enter the Blynk token and update interval.",
+                "title": "Blynk Setup",
+                "description": "Enter your Blynk authentication token and update interval",
                 "data": {
-                    "token": "Blynk Token",
+                    "token": "Authentication Token",
                     "scan_interval": "Update Interval (seconds)"
                 }
             },
-            "pin_config": {
+            "connection": {
+                "title": "Testing Connection",
+                "description": "Please wait while we test the connection and discover pins"
+            },
+            "pin_selection": {
                 "title": "Pin Configuration",
-                "description": "Pin {pin} configuration (Current value: {value})",
+                "description": "Select pins to enable and their types",
                 "data": {
-                    "pin_type": "Pin Type",
-                    "pin_name": "Pin Name"
+                    "enable": "Enable",
+                    "type": "Type"
+                }
+            },
+            "pin_config": {
+                "title": "Pin Details",
+                "description": "Configure the selected pin",
+                "data": {
+                    "pin_name": "Pin Name",
+                    "device_class": "Device Class",
+                    "unit": "Unit of Measurement"
                 }
             }
         },
         "error": {
-            "cannot_connect": "Unable to connect to Blynk Cloud",
-            "invalid_auth": "Invalid authentication token",
-            "no_pins_found": "No active pins found on the device"
+            "cannot_connect": "Failed to connect",
+            "invalid_token_format": "Token must be at least 10 characters",
+            "no_pins_found": "No pins discovered",
+            "no_pins_selected": "At least one pin must be selected"
         },
         "abort": {
             "already_configured": "Device is already configured"
@@ -30,27 +44,11 @@
     "options": {
         "step": {
             "init": {
+                "title": "Blynk Options",
+                "description": "Update device settings",
                 "data": {
                     "scan_interval": "Update Interval (seconds)"
-                },
-                "title": "Blynk Options"
-            }
-        }
-    },
-    "entity": {
-        "sensor": {
-            "blynk_sensor": {
-                "name": "Blynk Sensor"
-            }
-        },
-        "binary_sensor": {
-            "blynk_binary_sensor": {
-                "name": "Blynk Binary Sensor"
-            }
-        },
-        "switch": {
-            "blynk_switch": {
-                "name": "Blynk Switch"
+                }
             }
         }
     }
