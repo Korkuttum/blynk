@@ -25,7 +25,7 @@ CONF_DEVICE_CLASS: Final = "device_class"
 CONF_UNIT: Final = "unit"
 
 # Defaults
-DEFAULT_SCAN_INTERVAL: Final = 30
+DEFAULT_SCAN_INTERVAL: Final = 120
 DEFAULT_TIMEOUT: Final = 10
 
 # API
