@@ -2,26 +2,40 @@
     "config": {
         "step": {
             "user": {
-                "title": "Blynk Cloud Bağlantısı",
-                "description": "Lütfen Blynk token ve güncelleme aralığını girin.",
+                "title": "Blynk Kurulumu",
+                "description": "Blynk doğrulama belirtecinizi ve güncelleme aralığını girin",
                 "data": {
-                    "token": "Blynk Token",
+                    "token": "Doğrulama Belirteci",
                     "scan_interval": "Güncelleme Aralığı (saniye)"
                 }
             },
-            "pin_config": {
+            "connection": {
+                "title": "Bağlantı Test Ediliyor",
+                "description": "Bağlantı test edilirken ve pinler keşfedilirken lütfen bekleyin"
+            },
+            "pin_selection": {
                 "title": "Pin Yapılandırması",
-                "description": "Pin {pin} yapılandırması (Mevcut değer: {value})",
+                "description": "Etkinleştirilecek pinleri ve türlerini seçin",
                 "data": {
-                    "pin_type": "Pin Tipi",
-                    "pin_name": "Pin İsmi"
+                    "enable": "Etkinleştir",
+                    "type": "Tür"
+                }
+            },
+            "pin_config": {
+                "title": "Pin Detayları",
+                "description": "Seçilen pini yapılandırın",
+                "data": {
+                    "pin_name": "Pin Adı",
+                    "device_class": "Cihaz Sınıfı",
+                    "unit": "Ölçüm Birimi"
                 }
             }
         },
         "error": {
-            "cannot_connect": "Blynk Cloud'a bağlanılamadı",
-            "invalid_auth": "Geçersiz kimlik doğrulama token'ı",
-            "no_pins_found": "Cihazda aktif pin bulunamadı"
+            "cannot_connect": "Bağlantı başarısız",
+            "invalid_token_format": "Belirteç en az 10 karakter olmalıdır",
+            "no_pins_found": "Pin bulunamadı",
+            "no_pins_selected": "En az bir pin seçilmelidir"
         },
         "abort": {
             "already_configured": "Cihaz zaten yapılandırılmış"
@@ -30,27 +44,11 @@
     "options": {
         "step": {
             "init": {
+                "title": "Blynk Seçenekleri",
+                "description": "Cihaz ayarlarını güncelleyin",
                 "data": {
                     "scan_interval": "Güncelleme Aralığı (saniye)"
-                },
-                "title": "Blynk Seçenekleri"
-            }
-        }
-    },
-    "entity": {
-        "sensor": {
-            "blynk_sensor": {
-                "name": "Blynk Sensör"
-            }
-        },
-        "binary_sensor": {
-            "blynk_binary_sensor": {
-                "name": "Blynk İkili Sensör"
-            }
-        },
-        "switch": {
-            "blynk_switch": {
-                "name": "Blynk Anahtar"
+                }
             }
         }
     }
