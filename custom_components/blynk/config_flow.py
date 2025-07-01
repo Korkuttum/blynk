@@ -1,8 +1,9 @@
-"""Config flow for Blynk with pins default selected and per-pin type dropdown (fixed, no description)."""
+"""Config flow for Blynk."""
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 import logging
+from homeassistant.helpers import selector
 
 from .const import (
     DOMAIN,
@@ -13,7 +14,7 @@ from .const import (
     CONF_DEVICE_CLASS,
     CONF_UNIT,
     DEFAULT_SCAN_INTERVAL,
-    PIN_TYPES,
+    PIN_TYPE_OPTIONS,
     SENSOR_DEVICE_CLASSES,
     BINARY_SENSOR_DEVICE_CLASSES,
     SWITCH_DEVICE_CLASSES,
@@ -32,6 +33,7 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 8
 
     def __init__(self):
+        """Initialize the config flow."""
         self._token = None
         self._scan_interval = DEFAULT_SCAN_INTERVAL
         self._discovered_pins = []
@@ -55,11 +57,18 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     if entry.data.get(CONF_TOKEN) == self._token:
                         return self.async_abort(reason="already_configured")
                 return await self.async_step_connection()
+
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
                 vol.Required(CONF_TOKEN): str,
-                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(int, vol.Range(min=5, max=1000000)),
+                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=5,
+                        max=1000000,
+                        mode=selector.NumberSelectorMode.BOX
+                    ),
+                ),
             }),
             errors=errors,
         )
@@ -89,12 +98,24 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_pin_selection(self, user_input=None):
-        """Step 3: Pin selection and type (all selected by default, type dropdown under each)."""
+        """Step 3: Pin selection and type."""
         errors = {}
         pin_schema = {}
+
         for pin in self._discovered_pins:
-            pin_schema[vol.Optional(f"enable_{pin}", default=True, description=f"{pin} ekle?")] = bool
-            pin_schema[vol.Optional(f"type_{pin}", default=PIN_TYPE_SENSOR, description=f"{pin} türü")] = vol.In(PIN_TYPES)
+            pin_schema[vol.Optional(f"enable_{pin}", default=True)] = selector.BooleanSelector(
+                selector.BooleanSelectorConfig(),
+            )
+            pin_schema[vol.Optional(f"type_{pin}", default="sensor")] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value="sensor", label="Sensor"),
+                        selector.SelectOptionDict(value="binary_sensor", label="Binary Sensor"),
+                        selector.SelectOptionDict(value="switch", label="Switch"),
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN
+                ),
+            )
 
         if user_input is not None:
             self._pin_selection = []
@@ -110,6 +131,7 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._pin_configs = {}
                 self._current_pin_index = 0
                 return await self.async_step_pin_config()
+
         return self.async_show_form(
             step_id="pin_selection",
             data_schema=vol.Schema(pin_schema),
@@ -119,7 +141,6 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_pin_config(self, user_input=None):
         """Step 4+: Configure each selected pin in turn (name, class/unit)."""
         errors = {}
-        # Save previous pin config
         if user_input is not None and self._current_pin_index > 0:
             prev_pin = self._pin_config_order[self._current_pin_index - 1]
             conf = {
@@ -132,7 +153,6 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 conf[CONF_UNIT] = user_input[CONF_UNIT]
             self._pin_configs[prev_pin] = conf
 
-        # Hepsi bitti mi?
         if self._current_pin_index >= len(self._pin_config_order):
             return self.async_create_entry(
                 title=f"Blynk Device ({self._token[:8]}...)",
@@ -143,22 +163,40 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             )
 
-        # Sıradaki pini yapılandır
         pin = self._pin_config_order[self._current_pin_index]
         pin_type = self._pin_types[pin]
-        value = self._pin_values.get(pin, "-")
 
         schema = {
-            vol.Required(CONF_PIN_NAME, default=pin, description="Pin adı"): str,
+            vol.Required(CONF_PIN_NAME, default=pin): str,
         }
-        # Class/unit seçenekleri tipine göre
+
         if pin_type == PIN_TYPE_SENSOR:
-            schema[vol.Optional(CONF_DEVICE_CLASS, default="none", description="Sensör class seçin")] = vol.In(list(SENSOR_DEVICE_CLASSES.keys()))
-            schema[vol.Optional(CONF_UNIT, default="none", description="Sensör birimi seçin")] = vol.In(list(COMMON_UNITS.keys()))
+            schema[vol.Optional(CONF_DEVICE_CLASS, default="none")] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[{"value": k, "label": k} for k in SENSOR_DEVICE_CLASSES.keys()],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                ),
+            )
+            schema[vol.Optional(CONF_UNIT, default="none")] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[{"value": k, "label": k} for k in COMMON_UNITS.keys()],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                ),
+            )
         elif pin_type == PIN_TYPE_BINARY_SENSOR:
-            schema[vol.Optional(CONF_DEVICE_CLASS, default="none", description="Binary sensor class seçin")] = vol.In(list(BINARY_SENSOR_DEVICE_CLASSES.keys()))
+            schema[vol.Optional(CONF_DEVICE_CLASS, default="none")] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[{"value": k, "label": k} for k in BINARY_SENSOR_DEVICE_CLASSES.keys()],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                ),
+            )
         elif pin_type == PIN_TYPE_SWITCH:
-            schema[vol.Optional(CONF_DEVICE_CLASS, default="none", description="Switch class seçin")] = vol.In(list(SWITCH_DEVICE_CLASSES.keys()))
+            schema[vol.Optional(CONF_DEVICE_CLASS, default="none")] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[{"value": k, "label": k} for k in SWITCH_DEVICE_CLASSES.keys()],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                ),
+            )
 
         self._current_pin_index += 1
 
@@ -171,24 +209,51 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
         return BlynkOptionsFlowHandler(config_entry)
 
+
 class BlynkOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle options."""
+    """Handle Blynk options."""
 
     def __init__(self, config_entry):
+        """Initialize options flow."""
         self.config_entry = config_entry
+        self.options = dict(config_entry.options)
+        if not self.options:
+            self.options = {
+                CONF_SCAN_INTERVAL: config_entry.data.get(
+                    CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                )
+            }
 
     async def async_step_init(self, user_input=None):
         """Manage the options."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            return self.async_create_entry(
+                title="",
+                data={
+                    CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL]
+                }
+            )
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
-                vol.Optional(
+                vol.Required(
                     CONF_SCAN_INTERVAL,
-                    default=self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-                ): vol.All(int, vol.Range(min=5, max=1000000)),
+                    default=self.options.get(
+                        CONF_SCAN_INTERVAL,
+                        self.config_entry.data.get(
+                            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                        )
+                    )
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=5,
+                        max=1000000,
+                        mode=selector.NumberSelectorMode.BOX
+                    ),
+                ),
             })
         )
