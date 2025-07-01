@@ -37,58 +37,52 @@ PIN_TYPE_SENSOR: Final = "sensor"
 PIN_TYPE_BINARY_SENSOR: Final = "binary_sensor"
 PIN_TYPE_SWITCH: Final = "switch"
 
-PIN_TYPES: Final = [
-    PIN_TYPE_SENSOR,
-    PIN_TYPE_BINARY_SENSOR,
-    PIN_TYPE_SWITCH,
-]
+PIN_TYPE_OPTIONS: Final = {
+    "sensor": "Sensor",
+    "binary_sensor": "Binary Sensor",
+    "switch": "Switch"
+}
 
 # Device Classes
 SENSOR_DEVICE_CLASSES = {
+    "none": None,
     "temperature": SensorDeviceClass.TEMPERATURE,
     "humidity": SensorDeviceClass.HUMIDITY,
     "power": SensorDeviceClass.POWER,
     "current": SensorDeviceClass.CURRENT,
     "voltage": SensorDeviceClass.VOLTAGE,
     "energy": SensorDeviceClass.ENERGY,
-    "battery": SensorDeviceClass.BATTERY,
-    "none": None
+    "battery": SensorDeviceClass.BATTERY
 }
 
 BINARY_SENSOR_DEVICE_CLASSES = {
+    "none": None,
     "motion": BinarySensorDeviceClass.MOTION,
     "door": BinarySensorDeviceClass.DOOR,
     "window": BinarySensorDeviceClass.WINDOW,
-    "light": BinarySensorDeviceClass.LIGHT,
-    "none": None
+    "light": BinarySensorDeviceClass.LIGHT
 }
 
 SWITCH_DEVICE_CLASSES = {
+    "none": None,
     "switch": SwitchDeviceClass.SWITCH,
-    "outlet": SwitchDeviceClass.OUTLET,
-    "none": None
+    "outlet": SwitchDeviceClass.OUTLET
 }
 
 # Common Units
 COMMON_UNITS = {
-    "temperature": "°C",
-    "humidity": "%",
-    "power": "W",
-    "current": "A",
-    "voltage": "V",
-    "energy": "kWh",
-    "battery": "%",
-    "none": None
+    "none": None,
+    "°C": "°C",
+    "%": "%",
+    "W": "W",
+    "A": "A",
+    "V": "V",
+    "kWh": "kWh"
 }
-
-# Error Constants
-ERROR_CANNOT_CONNECT: Final = "cannot_connect"
-ERROR_INVALID_AUTH: Final = "invalid_auth"
-ERROR_NO_PINS_FOUND: Final = "no_pins_found"
 
 # Integration Metadata
 ATTRIBUTION: Final = "Data provided by Blynk Cloud"
-INTEGRATION_CREATED: Final = "2025-06-25"
+INTEGRATION_CREATED: Final = "2025-07-01"
 INTEGRATION_CREATOR: Final = "Korkuttum"
 
 # Update coordinator parameters
