@@ -3,9 +3,9 @@
         "step": {
             "user": {
                 "title": "Blynk Kurulumu",
-                "description": "Blynk doğrulama belirtecinizi ve güncelleme aralığını girin",
+                "description": "Token ve güncelleme aralığını girin",
                 "data": {
-                    "token": "Doğrulama Belirteci",
+                    "token": "Token",
                     "scan_interval": "Güncelleme Aralığı (saniye)"
                 }
             },
