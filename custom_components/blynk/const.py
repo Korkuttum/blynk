@@ -36,11 +36,17 @@ API_HEADERS: Final = {"Content-Type": "application/json"}
 PIN_TYPE_SENSOR: Final = "sensor"
 PIN_TYPE_BINARY_SENSOR: Final = "binary_sensor"
 PIN_TYPE_SWITCH: Final = "switch"
+PIN_TYPE_INPUT_NUMBER: Final = "input_number"
+PIN_TYPE_BUTTON: Final = "button"
+PIN_TYPE_INPUT_TEXT: Final = "input_text"
 
 PIN_TYPE_OPTIONS: Final = {
-    "sensor": "Sensor",
-    "binary_sensor": "Binary Sensor",
-    "switch": "Switch"
+    PIN_TYPE_SENSOR: "Sensor",
+    PIN_TYPE_BINARY_SENSOR: "Binary Sensor",
+    PIN_TYPE_SWITCH: "Switch",
+    PIN_TYPE_INPUT_NUMBER: "Input Number",
+    PIN_TYPE_BUTTON: "Button",
+    PIN_TYPE_INPUT_TEXT: "Text Input"
 }
 
 # Device Classes
@@ -69,7 +75,6 @@ SWITCH_DEVICE_CLASSES = {
     "outlet": SwitchDeviceClass.OUTLET
 }
 
-# Common Units
 COMMON_UNITS = {
     "none": None,
     "°C": "°C",
@@ -79,6 +84,15 @@ COMMON_UNITS = {
     "V": "V",
     "kWh": "kWh"
 }
+
+# Input Number Configuration
+INPUT_NUMBER_MIN: Final = 0
+INPUT_NUMBER_MAX: Final = 100
+INPUT_NUMBER_STEP: Final = 1
+
+# Input Text Configuration
+INPUT_TEXT_MIN_LENGTH: Final = 0
+INPUT_TEXT_MAX_LENGTH: Final = 100
 
 # Integration Metadata
 ATTRIBUTION: Final = "Data provided by Blynk Cloud"
