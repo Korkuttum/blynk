@@ -34,8 +34,10 @@ PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.BINARY_SENSOR,
     Platform.SWITCH,
+    Platform.NUMBER,  # input_number yerine number kullanıyoruz
+    Platform.BUTTON,
+    Platform.TEXT,
 ]
-
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Blynk component."""
     hass.data.setdefault(DOMAIN, {})
