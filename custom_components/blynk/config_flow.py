@@ -22,6 +22,14 @@ from .const import (
     PIN_TYPE_SENSOR,
     PIN_TYPE_BINARY_SENSOR,
     PIN_TYPE_SWITCH,
+    PIN_TYPE_INPUT_NUMBER,
+    PIN_TYPE_BUTTON,
+    PIN_TYPE_INPUT_TEXT,
+    INPUT_NUMBER_MIN,
+    INPUT_NUMBER_MAX,
+    INPUT_NUMBER_STEP,
+    INPUT_TEXT_MIN_LENGTH,
+    INPUT_TEXT_MAX_LENGTH,
 )
 from .blynk_api import BlynkCloudAPI
 
@@ -112,6 +120,9 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         selector.SelectOptionDict(value="sensor", label="Sensor"),
                         selector.SelectOptionDict(value="binary_sensor", label="Binary Sensor"),
                         selector.SelectOptionDict(value="switch", label="Switch"),
+                        selector.SelectOptionDict(value="input_number", label="Input Number"),
+                        selector.SelectOptionDict(value="button", label="Button"),
+                        selector.SelectOptionDict(value="input_text", label="Text Input"),
                     ],
                     mode=selector.SelectSelectorMode.DROPDOWN
                 ),
@@ -151,6 +162,22 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 conf[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
             if CONF_UNIT in user_input:
                 conf[CONF_UNIT] = user_input[CONF_UNIT]
+            
+            # Yeni tip için ek konfigürasyonları kaydet
+            if self._pin_types[prev_pin] == PIN_TYPE_INPUT_NUMBER:
+                conf.update({
+                    "min": user_input.get("min", INPUT_NUMBER_MIN),
+                    "max": user_input.get("max", INPUT_NUMBER_MAX),
+                    "step": user_input.get("step", INPUT_NUMBER_STEP),
+                    "mode": user_input.get("mode", "slider"),
+                })
+            elif self._pin_types[prev_pin] == PIN_TYPE_INPUT_TEXT:
+                conf.update({
+                    "min_length": user_input.get("min_length", INPUT_TEXT_MIN_LENGTH),
+                    "max_length": user_input.get("max_length", INPUT_TEXT_MAX_LENGTH),
+                    "pattern": user_input.get("pattern"),
+                })
+            
             self._pin_configs[prev_pin] = conf
 
         if self._current_pin_index >= len(self._pin_config_order):
@@ -170,6 +197,7 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Required(CONF_PIN_NAME, default=pin): str,
         }
 
+        # Her pin tipi için özel konfigürasyon şeması
         if pin_type == PIN_TYPE_SENSOR:
             schema[vol.Optional(CONF_DEVICE_CLASS, default="none")] = selector.SelectSelector(
                 selector.SelectSelectorConfig(
@@ -197,6 +225,58 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 ),
             )
+        elif pin_type == PIN_TYPE_INPUT_NUMBER:
+            schema.update({
+                vol.Optional("min", default=INPUT_NUMBER_MIN): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-1000000,
+                        max=1000000,
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
+                ),
+                vol.Optional("max", default=INPUT_NUMBER_MAX): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=-1000000,
+                        max=1000000,
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
+                ),
+                vol.Optional("step", default=INPUT_NUMBER_STEP): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0.001,
+                        max=1000,
+                        step=0.001,
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
+                ),
+                vol.Optional("mode", default="slider"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "slider", "label": "Slider"},
+                            {"value": "box", "label": "Box"},
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
+            })
+        elif pin_type == PIN_TYPE_INPUT_TEXT:
+            schema.update({
+                vol.Optional("min_length", default=INPUT_TEXT_MIN_LENGTH): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=0,
+                        max=255,
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
+                ),
+                vol.Optional("max_length", default=INPUT_TEXT_MAX_LENGTH): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=1,
+                        max=255,
+                        mode=selector.NumberSelectorMode.BOX,
+                    ),
+                ),
+                vol.Optional("pattern"): str,
+            })
 
         self._current_pin_index += 1
 
@@ -216,9 +296,8 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class BlynkOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle Blynk options."""
 
-    def __init__(self, config_entry):
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
         self.options = dict(config_entry.options)
         if not self.options:
             self.options = {
@@ -243,10 +322,7 @@ class BlynkOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(
                     CONF_SCAN_INTERVAL,
                     default=self.options.get(
-                        CONF_SCAN_INTERVAL,
-                        self.config_entry.data.get(
-                            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
-                        )
+                        CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                     )
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
