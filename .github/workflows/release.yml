@@ -1,0 +1,23 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release-zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: ZIP Component Dir
+        run: |
+          zip -r blynk_integration.zip ./
+      - name: Upload zip to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ github.workspace }}/blynk_integration.zip
+          asset_name: blynk_integration.zip
+          tag: ${{ github.ref }}
+          overwrite: true
