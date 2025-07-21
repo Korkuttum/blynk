@@ -4,7 +4,7 @@
   <img src="https://cdn.prod.website-files.com/6272e11601c9e296becde07b/665d3e23703fff50536fcae8_blynk-logo-green.svg" alt="Blynk Logo" width="300"/>
 </p>
 
-This integration is designed to manage your IoT projects through the Blynk platform. It provides easy control of common IoT devices like ESP8266 and ESP32, allowing you to expose your Blynk virtual pins as sensors, switches, and binary sensors in Home Assistant.
+This integration is designed to manage your IoT projects through the Blynk platform. It provides easy control of common IoT devices like ESP8266 and ESP32, allowing you to expose your Blynk virtual pins as sensors, switches, binary sensors, number, text and button in Home Assistant.
 
 ## Prerequisites
 
