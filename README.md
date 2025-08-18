@@ -1,5 +1,6 @@
 # Blynk IoT Integration
-
+This project facilitates the integration of Home Assistant with Blynk.
+#homeassistant #blynk #iot
 <p align="left">
   <img src="https://cdn.prod.website-files.com/6272e11601c9e296becde07b/665d3e23703fff50536fcae8_blynk-logo-green.svg" alt="Blynk Logo" width="300"/>
 </p>
