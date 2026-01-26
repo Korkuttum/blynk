@@ -1,0 +1,55 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Blynk Setup",
+                "description": "Enter your Blynk authentication token and update interval",
+                "data": {
+                    "token": "Authentication Token",
+                    "scan_interval": "Update Interval (seconds)"
+                }
+            },
+            "connection": {
+                "title": "Testing Connection",
+                "description": "Please wait while we test the connection and discover pins"
+            },
+            "pin_selection": {
+                "title": "Pin Configuration",
+                "description": "Select pins to enable and their types",
+                "data": {
+                    "enable": "Enable",
+                    "type": "Type"
+                }
+            },
+            "pin_config": {
+                "title": "Pin Details",
+                "description": "Configure the selected pin",
+                "data": {
+                    "pin_name": "Pin Name",
+                    "device_class": "Device Class",
+                    "unit": "Unit of Measurement"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect",
+            "invalid_token_format": "Token must be at least 10 characters",
+            "no_pins_found": "No pins discovered",
+            "no_pins_selected": "At least one pin must be selected"
+        },
+        "abort": {
+            "already_configured": "Device is already configured"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Blynk Options",
+                "description": "Update device settings",
+                "data": {
+                    "scan_interval": "Update Interval (seconds)"
+                }
+            }
+        }
+    }
+}
