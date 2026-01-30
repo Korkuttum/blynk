@@ -119,7 +119,7 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_connection(self, user_input=None):
-        """Step 2: Discover pins with effective MQTT mapping."""
+        """Step 2: Discover pins - SEND CURRENT VALUES ONLY."""
         errors = {}
         
         if self._use_mqtt and not self._mqtt_broker:
@@ -144,21 +144,19 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     pin_name = pin.upper()
                     self._discovered_pins.append(pin_name)
                     self._pin_values[pin_name] = value
+                    _LOGGER.info("Pin %s current value: %s", pin_name, value)
                 
                 if self._use_mqtt:
-                    _LOGGER.info("Starting effective MQTT pin mapping with broker %s:%s...", 
-                                self._mqtt_broker, self._mqtt_port)
+                    _LOGGER.info("Starting MQTT pin mapping (SENDING CURRENT VALUES ONLY)...")
                     
                     from .mqtt_client import BlynkMQTTClient
                     
-                    discovered_pin_names = set()
                     received_messages = []
                     
                     async def on_mqtt_message(topic: str, data: dict):
                         """Handle MQTT message during discovery."""
                         if "/ds/" in topic:
                             pin_name = topic.split("/ds/")[1].upper()
-                            discovered_pin_names.add(pin_name)
                             
                             if isinstance(data, dict) and "value" in data:
                                 value = data["value"]
@@ -170,6 +168,7 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 "value": value,
                                 "timestamp": asyncio.get_event_loop().time()
                             })
+                            _LOGGER.debug("MQTT received: %s = %s", pin_name, value)
                     
                     self._mqtt_client = BlynkMQTTClient(
                         auth_token=self._token,
@@ -183,163 +182,79 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         _LOGGER.warning("MQTT connection failed during discovery")
                         return await self.async_step_pin_selection()
                     
-                    _LOGGER.info("Phase 1: Quick listening for MQTT messages (3 seconds)...")
-                    await asyncio.sleep(3)
+                    # Phase 1: Passive listening (5 seconds)
+                    _LOGGER.info("Phase 1: Passive listening for 5 seconds...")
+                    await asyncio.sleep(5)
                     
-                    # Store original values
-                    original_values = self._pin_values.copy()
+                    _LOGGER.info("Passive listening captured %d MQTT messages", len(received_messages))
+                    for msg in received_messages:
+                        _LOGGER.info("  MQTT: %s = %s", msg["pin_name"], msg["value"])
                     
-                    # Test each pin with smart strategy
+                    # Phase 2: Send each pin's CURRENT value
+                    _LOGGER.info("Phase 2: Sending current pin values (NO VALUE CHANGES)...")
+                    
                     for pin_number, current_value in self._pin_values.items():
                         try:
                             current_str = str(current_value)
                             
-                            # Determine strategy based on value type
-                            is_binary = current_str in ["0", "1"]
-                            is_numeric = isinstance(current_value, (int, float))
-                            is_string = isinstance(current_value, str) and not is_binary
+                            _LOGGER.info("Processing pin %s: sending current value '%s'", 
+                                       pin_number, current_str)
                             
-                            test_value = None
+                            # SEND CURRENT VALUE ONLY - NO CHANGE
+                            success = await self._api.set_pin_value(pin_number, current_str)
                             
-                            if is_binary:
-                                # Binary pins: safe toggle
-                                test_value = "1" if current_str == "0" else "0"
-                                _LOGGER.info("Testing binary pin %s: %s -> %s", 
-                                           pin_number, current_value, test_value)
+                            if success:
+                                _LOGGER.debug("Successfully sent current value for pin %s", pin_number)
                                 
-                                success = await self._api.set_pin_value(pin_number, test_value)
-                                if success:
-                                    await asyncio.sleep(2)
-                                    
-                                    # Check for matching MQTT messages
-                                    recent_messages = [
-                                        msg for msg in received_messages 
-                                        if msg["timestamp"] > asyncio.get_event_loop().time() - 3
-                                    ]
-                                    
-                                    for msg in recent_messages:
-                                        if str(msg["value"]) == test_value:
-                                            if msg["pin_name"] not in self._pin_mapping:
-                                                self._pin_mapping[msg["pin_name"]] = pin_number
-                                                _LOGGER.info("✅ MQTT %s → %s", msg["pin_name"], pin_number)
-                                                break
-                                    
-                                    # Restore
-                                    await self._api.set_pin_value(pin_number, current_str)
-                                    await asyncio.sleep(0.5)
+                                # Wait for MQTT response
+                                await asyncio.sleep(3)
+                                
+                                # Check for matching MQTT messages
+                                for msg in received_messages:
+                                    if str(msg["value"]) == current_str:
+                                        if msg["pin_name"] not in self._pin_mapping:
+                                            self._pin_mapping[msg["pin_name"]] = pin_number
+                                            _LOGGER.info("✅ MATCHED: MQTT %s → PIN %s (value: %s)", 
+                                                       msg["pin_name"], pin_number, current_str)
+                                            break
                             
-                            elif is_numeric:
-                                # Numeric pins: small change
-                                current_num = float(current_value)
-                                if current_num == 0:
-                                    test_value = 10
-                                elif current_num < 50:
-                                    test_value = current_num + 5
-                                else:
-                                    test_value = current_num - 5
-                                
-                                _LOGGER.info("Testing numeric pin %s: %s -> %s", 
-                                           pin_number, current_value, test_value)
-                                
-                                success = await self._api.set_pin_value(pin_number, test_value)
-                                if success:
-                                    await asyncio.sleep(3)
-                                    
-                                    recent_messages = [
-                                        msg for msg in received_messages 
-                                        if msg["timestamp"] > asyncio.get_event_loop().time() - 4
-                                    ]
-                                    
-                                    for msg in recent_messages:
-                                        try:
-                                            msg_value = float(str(msg["value"]))
-                                            if abs(msg_value - test_value) <= 0.5:
-                                                if msg["pin_name"] not in self._pin_mapping:
-                                                    self._pin_mapping[msg["pin_name"]] = pin_number
-                                                    _LOGGER.info("✅ MQTT %s → %s", msg["pin_name"], pin_number)
-                                                    break
-                                        except (ValueError, TypeError):
-                                            continue
-                                    
-                                    # Restore
-                                    await self._api.set_pin_value(pin_number, current_str)
-                                    await asyncio.sleep(0.5)
+                            # Small delay between pins
+                            await asyncio.sleep(1)
                             
-                            elif is_string:
-                                # String pins: append marker
-                                test_value = current_str + "_MAP"
-                                if len(test_value) > 50:
-                                    test_value = current_str[:40] + "_MAP"
-                                
-                                _LOGGER.info("Testing string pin %s", pin_number)
-                                
-                                success = await self._api.set_pin_value(pin_number, test_value)
-                                if success:
-                                    await asyncio.sleep(2)
-                                    
-                                    recent_messages = [
-                                        msg for msg in received_messages 
-                                        if msg["timestamp"] > asyncio.get_event_loop().time() - 3
-                                    ]
-                                    
-                                    for msg in recent_messages:
-                                        if str(msg["value"]) == test_value:
-                                            if msg["pin_name"] not in self._pin_mapping:
-                                                self._pin_mapping[msg["pin_name"]] = pin_number
-                                                _LOGGER.info("✅ MQTT %s → %s", msg["pin_name"], pin_number)
-                                                break
-                                    
-                                    # Restore
-                                    await self._api.set_pin_value(pin_number, current_str)
-                                    await asyncio.sleep(0.5)
-                        
                         except Exception as pin_err:
-                            _LOGGER.debug("Error testing pin %s: %s", pin_number, pin_err)
+                            _LOGGER.warning("Error processing pin %s: %s", pin_number, pin_err)
                             continue
                     
-                    # Passive matching for any remaining pins
-                    unmapped_pins = [p for p in self._discovered_pins if p not in self._pin_mapping.values()]
-                    if unmapped_pins and received_messages:
-                        _LOGGER.info("Passive matching for %d unmapped pins", len(unmapped_pins))
+                    # Phase 3: Value-based matching for any remaining pins
+                    if received_messages:
+                        _LOGGER.info("Phase 3: Value-based matching...")
                         
-                        for pin_number in unmapped_pins:
-                            pin_value = str(self._pin_values[pin_number])
+                        # Create value lookup tables
+                        pin_value_map = {}
+                        for pin_number, value in self._pin_values.items():
+                            pin_value_map[str(value)] = pin_number
+                        
+                        # Check each MQTT message
+                        for msg in received_messages:
+                            mqtt_value = str(msg["value"])
+                            mqtt_name = msg["pin_name"]
                             
-                            matching_msgs = []
-                            for msg in received_messages:
-                                if str(msg["value"]) == pin_value:
-                                    matching_msgs.append(msg)
-                                else:
-                                    try:
-                                        msg_num = float(str(msg["value"]))
-                                        pin_num = float(pin_value)
-                                        if abs(msg_num - pin_num) <= 1.0:
-                                            matching_msgs.append(msg)
-                                    except (ValueError, TypeError):
-                                        pass
+                            # Skip if already mapped
+                            if mqtt_name in self._pin_mapping:
+                                continue
                             
-                            if matching_msgs:
-                                from collections import Counter
-                                pin_names = [msg["pin_name"] for msg in matching_msgs]
-                                most_common = Counter(pin_names).most_common(1)[0][0]
-                                if most_common not in self._pin_mapping:
-                                    self._pin_mapping[most_common] = pin_number
-                                    _LOGGER.info("✅ Passive: MQTT %s → %s", most_common, pin_number)
-                    
-                    # Final verification
-                    for pin_number, original_value in original_values.items():
-                        try:
-                            current = await self._api.get_pin_value(pin_number)
-                            if str(current) != str(original_value):
-                                _LOGGER.debug("Final restore for %s", pin_number)
-                                await self._api.set_pin_value(pin_number, original_value)
-                        except:
-                            pass
+                            # Try to find matching pin value
+                            if mqtt_value in pin_value_map:
+                                pin_number = pin_value_map[mqtt_value]
+                                if pin_number not in self._pin_mapping.values():
+                                    self._pin_mapping[mqtt_name] = pin_number
+                                    _LOGGER.info("✅ VALUE MATCH: MQTT %s → PIN %s (value: %s)", 
+                                               mqtt_name, pin_number, mqtt_value)
                     
                     if self._mqtt_client:
                         await self._mqtt_client.async_disconnect()
                     
-                    _LOGGER.info("Effective pin mapping completed: %s", self._pin_mapping)
+                    _LOGGER.info("Pin mapping completed: %s", self._pin_mapping)
                 
                 return await self.async_step_pin_selection()
             else:
