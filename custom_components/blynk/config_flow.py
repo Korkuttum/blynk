@@ -45,7 +45,7 @@ _LOGGER = logging.getLogger(__name__)
 class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Blynk."""
 
-    VERSION = 9
+    VERSION = 10
 
     def __init__(self):
         """Initialize the config flow."""
@@ -66,27 +66,30 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._api = None
 
     async def async_step_user(self, user_input=None):
-        """Step 1: Token, MQTT and scan interval."""
+        """Step 1: Token and MQTT selection only."""
         errors = {}
         if user_input is not None:
             self._token = user_input[CONF_TOKEN].strip()
-            self._scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
             self._use_mqtt = user_input.get(CONF_USE_MQTT, False)
-            
-            if self._use_mqtt:
-                self._mqtt_broker = user_input.get(CONF_MQTT_BROKER, DEFAULT_MQTT_BROKER)
-                self._mqtt_port = user_input.get(CONF_MQTT_PORT, DEFAULT_MQTT_PORT)
             
             if len(self._token) < 10:
                 errors["base"] = "invalid_token_format"
             else:
+                # Check if already configured
                 for entry in self._async_current_entries():
                     if entry.data.get(CONF_TOKEN) == self._token:
                         return self.async_abort(reason="already_configured")
                 
+                # Create API instance
                 self._api = BlynkCloudAPI(self._token)
-                return await self.async_step_connection()
+                
+                # Route to appropriate next step based on MQTT selection
+                if self._use_mqtt:
+                    return await self.async_step_mqtt_config()
+                else:
+                    return await self.async_step_http_config()
 
+        # Simple schema: only token and MQTT checkbox
         schema = {
             vol.Required(CONF_TOKEN): str,
             vol.Optional(CONF_USE_MQTT, default=False): selector.BooleanSelector(
@@ -94,32 +97,70 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
         }
         
-        if self._use_mqtt or (user_input and user_input.get(CONF_USE_MQTT, False)):
-            schema[vol.Optional(CONF_MQTT_BROKER, default=DEFAULT_MQTT_BROKER)] = str
-            schema[vol.Optional(CONF_MQTT_PORT, default=DEFAULT_MQTT_PORT)] = selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=1,
-                    max=65535,
-                    mode=selector.NumberSelectorMode.BOX
-                ),
-            )
-        
-        schema[vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL)] = selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                min=5,
-                max=1000000,
-                mode=selector.NumberSelectorMode.BOX
-            ),
-        )
-        
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(schema),
             errors=errors,
         )
 
+    async def async_step_mqtt_config(self, user_input=None):
+        """Step 2A: MQTT broker configuration (if MQTT selected)."""
+        errors = {}
+        if user_input is not None:
+            self._mqtt_broker = user_input.get(CONF_MQTT_BROKER, DEFAULT_MQTT_BROKER)
+            self._mqtt_port = user_input.get(CONF_MQTT_PORT, DEFAULT_MQTT_PORT)
+            # Set default scan interval for MQTT mode (not used but needed for config)
+            self._scan_interval = DEFAULT_SCAN_INTERVAL
+            return await self.async_step_connection()
+
+        schema = {
+            vol.Optional(CONF_MQTT_BROKER, default=DEFAULT_MQTT_BROKER): str,
+            vol.Optional(CONF_MQTT_PORT, default=DEFAULT_MQTT_PORT): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1,
+                    max=65535,
+                    mode=selector.NumberSelectorMode.BOX,
+                ),
+            ),
+        }
+        
+        return self.async_show_form(
+            step_id="mqtt_config",
+            data_schema=vol.Schema(schema),
+            errors=errors,
+        )
+
+    async def async_step_http_config(self, user_input=None):
+        """Step 2B: HTTP polling configuration (if HTTP selected)."""
+        errors = {}
+        if user_input is not None:
+            self._scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+            
+            # Validate scan interval
+            if not (10 <= self._scan_interval <= 3600):
+                errors["base"] = "invalid_scan_interval"
+            else:
+                return await self.async_step_connection()
+
+        schema = {
+            vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=10,
+                    max=3600,
+                    mode=selector.NumberSelectorMode.BOX,
+                    unit_of_measurement="seconds",
+                ),
+            ),
+        }
+        
+        return self.async_show_form(
+            step_id="http_config",
+            data_schema=vol.Schema(schema),
+            errors=errors,
+        )
+
     async def async_step_connection(self, user_input=None):
-        """Step 2: Discover pins - SEND CURRENT VALUES ONLY."""
+        """Step 3: Discover pins - SEND CURRENT VALUES ONLY."""
         errors = {}
         
         if self._use_mqtt and not self._mqtt_broker:
@@ -197,70 +238,81 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         try:
                             current_str = str(current_value)
                             
-                            _LOGGER.info("Processing pin %s: sending current value '%s'", 
-                                       pin_number, current_str)
+                            # Değer tipini belirle
+                            is_binary = current_str in ("0", "1", "true", "false", "True", "False")
+                            is_numeric = False
+                            is_string = False
                             
-                            # SEND CURRENT VALUE ONLY - NO CHANGE
+                            try:
+                                float(current_str)
+                                is_numeric = True
+                            except (ValueError, TypeError):
+                                is_string = True
+                            
+                            _LOGGER.debug("Processing pin %s: %s (binary: %s, numeric: %s, string: %s)",
+                                        pin_number, current_value, is_binary, is_numeric, is_string)
+                            
+                            # Mevcut değeri gönder - GÜVENLİ: cihaz durumunu değiştirmeden
                             success = await self._api.set_pin_value(pin_number, current_str)
-                            
                             if success:
-                                _LOGGER.debug("Successfully sent current value for pin %s", pin_number)
+                                _LOGGER.debug("Sent current value for pin %s: %s", pin_number, current_str)
                                 
-                                # Wait for MQTT response
-                                await asyncio.sleep(3)
+                                # MQTT cevabını bekle
+                                if is_binary:
+                                    wait_time = 2
+                                elif is_numeric:
+                                    wait_time = 3
+                                else:
+                                    wait_time = 3
                                 
-                                # Check for matching MQTT messages
-                                for msg in received_messages:
-                                    if str(msg["value"]) == current_str:
-                                        if msg["pin_name"] not in self._pin_mapping:
-                                            self._pin_mapping[msg["pin_name"]] = pin_number
-                                            _LOGGER.info("✅ MATCHED: MQTT %s → PIN %s (value: %s)", 
-                                                       msg["pin_name"], pin_number, current_str)
+                                await asyncio.sleep(wait_time)
+                                
+                                # Son mesajları kontrol et
+                                recent_messages = [
+                                    msg for msg in received_messages 
+                                    if msg["timestamp"] > asyncio.get_event_loop().time() - (wait_time + 2)
+                                ]
+                                
+                                # MQTT mesajlarında aynı değeri ara
+                                for msg in recent_messages:
+                                    if msg["value"] == current_str:
+                                        pin_name = msg["pin_name"]
+                                        if pin_name not in self._pin_mapping:
+                                            self._pin_mapping[pin_name] = pin_number
+                                            _LOGGER.info("✅ Direct mapping: MQTT %s → %s (value: %s)", 
+                                                       pin_name, pin_number, current_str)
                                             break
+                                    elif is_numeric:
+                                        # Sayısal değerler için toleranslı karşılaştırma
+                                        try:
+                                            msg_value = float(str(msg["value"]))
+                                            pin_value_num = float(current_str)
+                                            tolerance = abs(pin_value_num * 0.01)
+                                            if abs(msg_value - pin_value_num) <= max(tolerance, 0.1):
+                                                pin_name = msg["pin_name"]
+                                                if pin_name not in self._pin_mapping:
+                                                    self._pin_mapping[pin_name] = pin_number
+                                                    _LOGGER.info("✅ Numeric mapping: MQTT %s → %s (value: %s ≈ %s)", 
+                                                               pin_name, pin_number, msg_value, pin_value_num)
+                                                    break
+                                        except (ValueError, TypeError):
+                                            continue
                             
-                            # Small delay between pins
                             await asyncio.sleep(1)
                             
                         except Exception as pin_err:
                             _LOGGER.warning("Error processing pin %s: %s", pin_number, pin_err)
                             continue
                     
-                    # Phase 3: Value-based matching for any remaining pins
-                    if received_messages:
-                        _LOGGER.info("Phase 3: Value-based matching...")
-                        
-                        # Create value lookup tables
-                        pin_value_map = {}
-                        for pin_number, value in self._pin_values.items():
-                            pin_value_map[str(value)] = pin_number
-                        
-                        # Check each MQTT message
-                        for msg in received_messages:
-                            mqtt_value = str(msg["value"])
-                            mqtt_name = msg["pin_name"]
-                            
-                            # Skip if already mapped
-                            if mqtt_name in self._pin_mapping:
-                                continue
-                            
-                            # Try to find matching pin value
-                            if mqtt_value in pin_value_map:
-                                pin_number = pin_value_map[mqtt_value]
-                                if pin_number not in self._pin_mapping.values():
-                                    self._pin_mapping[mqtt_name] = pin_number
-                                    _LOGGER.info("✅ VALUE MATCH: MQTT %s → PIN %s (value: %s)", 
-                                               mqtt_name, pin_number, mqtt_value)
-                    
-                    if self._mqtt_client:
-                        await self._mqtt_client.async_disconnect()
-                    
-                    _LOGGER.info("Pin mapping completed: %s", self._pin_mapping)
+                    # Disconnect MQTT after mapping
+                    await self._mqtt_client.async_disconnect()
+                    self._mqtt_client = None
                 
                 return await self.async_step_pin_selection()
             else:
                 errors["base"] = "no_pins_found"
         except Exception as err:
-            _LOGGER.error("Connection test failed: %s", err)
+            _LOGGER.error("Error during connection test: %s", err)
             errors["base"] = "cannot_connect"
         
         return self.async_show_form(
@@ -269,70 +321,66 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_pin_selection(self, user_input=None):
-        """Step 3: Pin selection and type with MQTT names."""
+        """Step 4: Select pins to configure."""
         errors = {}
-        pin_schema = {}
-
-        reversed_mapping = {v: k for k, v in self._pin_mapping.items()}
         
-        for pin in self._discovered_pins:
-            display_name = reversed_mapping.get(pin, pin)
-            
-            pin_schema[vol.Optional(f"enable_{pin}", default=True)] = selector.BooleanSelector(
-                selector.BooleanSelectorConfig(),
-            )
-            pin_schema[vol.Optional(f"type_{pin}", default="sensor")] = selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        selector.SelectOptionDict(value="sensor", label="Sensor"),
-                        selector.SelectOptionDict(value="binary_sensor", label="Binary Sensor"),
-                        selector.SelectOptionDict(value="switch", label="Switch"),
-                        selector.SelectOptionDict(value="input_number", label="Input Number"),
-                        selector.SelectOptionDict(value="button", label="Button"),
-                        selector.SelectOptionDict(value="input_text", label="Text Input"),
-                    ],
-                    mode=selector.SelectSelectorMode.DROPDOWN
-                ),
-            )
-
         if user_input is not None:
             self._pin_selection = []
             self._pin_types = {}
+            
             for pin in self._discovered_pins:
-                if user_input.get(f"enable_{pin}", True):
+                enable_key = f"enable_{pin}"
+                type_key = f"type_{pin}"
+                
+                if user_input.get(enable_key, False):
                     self._pin_selection.append(pin)
-                    self._pin_types[pin] = user_input.get(f"type_{pin}", PIN_TYPE_SENSOR)
+                    self._pin_types[pin] = user_input.get(type_key, PIN_TYPE_SENSOR)
+            
             if not self._pin_selection:
                 errors["base"] = "no_pins_selected"
             else:
-                self._pin_config_order = list(self._pin_selection)
-                self._pin_configs = {}
+                self._pin_config_order = self._pin_selection.copy()
                 self._current_pin_index = 0
                 return await self.async_step_pin_config()
-
-        pin_descriptions = []
-        for pin in self._discovered_pins:
+        
+        schema = {}
+        for pin in sorted(self._discovered_pins):
+            reversed_mapping = {v: k for k, v in self._pin_mapping.items()}
             display_name = reversed_mapping.get(pin, pin)
-            value = self._pin_values.get(pin, "N/A")
-            pin_descriptions.append(f"{pin} → {display_name} (Value: {value})")
+            current_value = self._pin_values.get(pin, "N/A")
+            
+            # Pin label with value
+            if self._use_mqtt and display_name != pin:
+                pin_label = f"{pin} (MQTT: {display_name}) = {current_value}"
+            else:
+                pin_label = f"{pin} = {current_value}"
+            
+            schema[vol.Optional(f"enable_{pin}", default=False)] = selector.BooleanSelector(
+                selector.BooleanSelectorConfig()
+            )
+            schema[vol.Optional(f"type_{pin}", default=PIN_TYPE_SENSOR)] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[{"value": k, "label": v} for k, v in PIN_TYPE_OPTIONS.items()],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            )
         
         return self.async_show_form(
             step_id="pin_selection",
-            data_schema=vol.Schema(pin_schema),
+            data_schema=vol.Schema(schema),
             errors=errors,
-            description_placeholders={
-                "pin_info": "\n".join(pin_descriptions)
-            }
         )
 
     async def async_step_pin_config(self, user_input=None):
-        """Step 4+: Configure each selected pin in turn."""
+        """Step 5: Configure individual pins."""
         errors = {}
-        if user_input is not None and self._current_pin_index > 0:
+        
+        if user_input is not None:
             prev_pin = self._pin_config_order[self._current_pin_index - 1]
+            
             conf = {
                 CONF_PIN_TYPE: self._pin_types[prev_pin],
-                CONF_PIN_NAME: user_input.get(CONF_PIN_NAME, prev_pin).strip(),
+                CONF_PIN_NAME: user_input[CONF_PIN_NAME],
             }
             if CONF_DEVICE_CLASS in user_input:
                 conf[CONF_DEVICE_CLASS] = user_input[CONF_DEVICE_CLASS]
@@ -469,13 +517,18 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         self._current_pin_index += 1
 
+        # Format MQTT name for display
+        mqtt_name_display = ""
+        if self._use_mqtt and display_name != pin:
+            mqtt_name_display = f" (MQTT: {display_name})"
+
         return self.async_show_form(
             step_id="pin_config",
             data_schema=vol.Schema(schema),
             errors=errors,
             description_placeholders={
                 "pin_number": pin,
-                "mqtt_name": display_name if display_name != pin else "Not mapped (using pin number)",
+                "mqtt_name": mqtt_name_display,
                 "current_value": str(self._pin_values.get(pin, "N/A"))
             }
         )
@@ -488,43 +541,108 @@ class BlynkConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class BlynkOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle Blynk options."""
+    """Handle Blynk options - Dynamic based on MQTT/HTTP mode."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""
         self._config_entry = config_entry
+        self._use_mqtt = config_entry.data.get(CONF_USE_MQTT, False)
+        
+        # Initialize options from config entry
         self.options = dict(config_entry.options)
         if not self.options:
-            self.options = {
-                CONF_SCAN_INTERVAL: config_entry.data.get(
+            # Set default options based on current config
+            self.options = {}
+            if not self._use_mqtt:
+                self.options[CONF_SCAN_INTERVAL] = config_entry.data.get(
                     CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                 )
-            }
+            else:
+                self.options[CONF_MQTT_BROKER] = config_entry.data.get(
+                    CONF_MQTT_BROKER, DEFAULT_MQTT_BROKER
+                )
+                self.options[CONF_MQTT_PORT] = config_entry.data.get(
+                    CONF_MQTT_PORT, DEFAULT_MQTT_PORT
+                )
 
     async def async_step_init(self, user_input=None):
-        """Manage the options."""
+        """Manage the options - Dynamic schema based on MQTT/HTTP."""
+        errors = {}
+        
         if user_input is not None:
-            return self.async_create_entry(
-                title="",
-                data={
-                    CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL]
-                }
-            )
-
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema({
-                vol.Required(
-                    CONF_SCAN_INTERVAL,
-                    default=self.options.get(
-                        CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+            # Validate and save based on mode
+            if not self._use_mqtt:
+                # HTTP mode - validate scan interval
+                scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+                if not (10 <= scan_interval <= 3600):
+                    errors["base"] = "invalid_scan_interval"
+                else:
+                    # Update entry data with new scan interval
+                    new_data = dict(self._config_entry.data)
+                    new_data[CONF_SCAN_INTERVAL] = scan_interval
+                    self.hass.config_entries.async_update_entry(
+                        self._config_entry,
+                        data=new_data
                     )
+                    return self.async_create_entry(title="", data={CONF_SCAN_INTERVAL: scan_interval})
+            else:
+                # MQTT mode - update broker settings
+                mqtt_broker = user_input.get(CONF_MQTT_BROKER, DEFAULT_MQTT_BROKER)
+                mqtt_port = user_input.get(CONF_MQTT_PORT, DEFAULT_MQTT_PORT)
+                
+                # Update entry data with new MQTT settings
+                new_data = dict(self._config_entry.data)
+                new_data[CONF_MQTT_BROKER] = mqtt_broker
+                new_data[CONF_MQTT_PORT] = mqtt_port
+                self.hass.config_entries.async_update_entry(
+                    self._config_entry,
+                    data=new_data
+                )
+                return self.async_create_entry(
+                    title="",
+                    data={
+                        CONF_MQTT_BROKER: mqtt_broker,
+                        CONF_MQTT_PORT: mqtt_port
+                    }
+                )
+
+        # Build schema based on mode
+        if self._use_mqtt:
+            # MQTT mode - show broker and port options
+            schema = {
+                vol.Optional(
+                    CONF_MQTT_BROKER,
+                    default=self.options.get(CONF_MQTT_BROKER, DEFAULT_MQTT_BROKER)
+                ): str,
+                vol.Optional(
+                    CONF_MQTT_PORT,
+                    default=self.options.get(CONF_MQTT_PORT, DEFAULT_MQTT_PORT)
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        min=5,
-                        max=1000000,
+                        min=1,
+                        max=65535,
                         mode=selector.NumberSelectorMode.BOX
                     ),
                 ),
-            })
+            }
+        else:
+            # HTTP mode - show scan interval option
+            schema = {
+                vol.Required(
+                    CONF_SCAN_INTERVAL,
+                    default=self.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=10,
+                        max=3600,
+                        mode=selector.NumberSelectorMode.BOX,
+                        unit_of_measurement="seconds",
+                    ),
+                ),
+            }
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(schema),
+            errors=errors,
         )
