@@ -3,10 +3,36 @@
         "step": {
             "user": {
                 "title": "Blynk Setup",
-                "description": "Enter your Blynk authentication token and update interval",
+                "description": "Enter your Blynk authentication token and choose connection method",
                 "data": {
                     "token": "Authentication Token",
+                    "use_mqtt": "Enable MQTT (Real-time Updates)"
+                },
+                "data_description": {
+                    "token": "Your 32-character Blynk authentication token from the Blynk app",
+                    "use_mqtt": "MQTT support enables instant, real-time updates. However, if you have rapidly changing sensors, you may hit API rate limits. Free Blynk accounts have a monthly limit of 200,000 API calls."
+                }
+            },
+            "mqtt_config": {
+                "title": "MQTT Configuration",
+                "description": "Configure MQTT broker settings for real-time communication",
+                "data": {
+                    "mqtt_broker": "MQTT Broker",
+                    "mqtt_port": "MQTT Port"
+                },
+                "data_description": {
+                    "mqtt_broker": "Blynk MQTT broker address (default: blynk.cloud)",
+                    "mqtt_port": "Secure MQTT port (default: 8883 for SSL/TLS)"
+                }
+            },
+            "http_config": {
+                "title": "HTTP Polling Configuration",
+                "description": "Configure how often to poll the Blynk API for updates",
+                "data": {
                     "scan_interval": "Update Interval (seconds)"
+                },
+                "data_description": {
+                    "scan_interval": "How frequently to fetch data from Blynk Cloud (recommended: 60-300 seconds)"
                 }
             },
             "connection": {
@@ -15,30 +41,52 @@
             },
             "pin_selection": {
                 "title": "Pin Configuration",
-                "description": "Select pins to enable and their types",
+                "description": "Select pins to enable and configure their types. Current values are shown for reference.",
                 "data": {
                     "enable": "Enable",
                     "type": "Type"
                 }
             },
             "pin_config": {
-                "title": "Pin Details",
-                "description": "Configure the selected pin",
+                "title": "Configure Pin {pin_number}",
+                "description": "Configure settings for pin {pin_number}{mqtt_name}\nCurrent value: {current_value}",
                 "data": {
                     "pin_name": "Pin Name",
                     "device_class": "Device Class",
-                    "unit": "Unit of Measurement"
+                    "unit": "Unit of Measurement",
+                    "min": "Minimum Value",
+                    "max": "Maximum Value",
+                    "step": "Step Size",
+                    "mode": "Input Mode",
+                    "min_length": "Minimum Length",
+                    "max_length": "Maximum Length",
+                    "pattern": "Validation Pattern (regex)"
+                },
+                "data_description": {
+                    "pin_name": "Friendly name for this pin in Home Assistant",
+                    "device_class": "Device class for proper icon and unit handling",
+                    "unit": "Unit of measurement (temperature, humidity, etc.)",
+                    "min": "Minimum allowed value for this input",
+                    "max": "Maximum allowed value for this input",
+                    "step": "Step size for value changes",
+                    "mode": "How to display the input (slider for visual, box for numeric)",
+                    "min_length": "Minimum text length",
+                    "max_length": "Maximum text length",
+                    "pattern": "Regular expression for text validation"
                 }
             }
         },
         "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_token_format": "Token must be at least 10 characters",
-            "no_pins_found": "No pins discovered",
-            "no_pins_selected": "At least one pin must be selected"
+            "cannot_connect": "Failed to connect to Blynk Cloud",
+            "invalid_token_format": "Authentication token must be at least 10 characters",
+            "no_pins_found": "No pins discovered - check your device configuration",
+            "no_pins_selected": "At least one pin must be selected",
+            "mqtt_connection_failed": "MQTT connection failed - falling back to HTTP polling",
+            "invalid_scan_interval": "Scan interval must be between 10 and 3600 seconds",
+            "timeout": "Connection timeout - please check your internet connection"
         },
         "abort": {
-            "already_configured": "Device is already configured"
+            "already_configured": "This Blynk device is already configured"
         }
     },
     "options": {
@@ -47,9 +95,48 @@
                 "title": "Blynk Options",
                 "description": "Update device settings",
                 "data": {
-                    "scan_interval": "Update Interval (seconds)"
+                    "scan_interval": "Update Interval (seconds)",
+                    "mqtt_broker": "MQTT Broker",
+                    "mqtt_port": "MQTT Port"
+                },
+                "data_description": {
+                    "scan_interval": "How frequently to fetch data from Blynk Cloud (HTTP mode only, recommended: 60-300 seconds)",
+                    "mqtt_broker": "Blynk MQTT broker address for real-time updates",
+                    "mqtt_port": "Secure MQTT port (8883 for SSL/TLS)"
                 }
             }
+        }
+    },
+    "selector": {
+        "pin_type": {
+            "options": {
+                "sensor": "Sensor (read-only numeric/text values)",
+                "binary_sensor": "Binary Sensor (on/off, true/false states)",
+                "switch": "Switch (control on/off devices)",
+                "input_number": "Number Input (adjustable numeric values)",
+                "button": "Button (trigger actions)",
+                "input_text": "Text Input (send text/commands)"
+            }
+        },
+        "device_class": {
+            "none": "Default (Generic)",
+            "temperature": "Temperature",
+            "humidity": "Humidity",
+            "power": "Power",
+            "current": "Current",
+            "voltage": "Voltage",
+            "energy": "Energy",
+            "battery": "Battery",
+            "motion": "Motion",
+            "door": "Door",
+            "window": "Window",
+            "light": "Light",
+            "switch": "Switch",
+            "outlet": "Outlet"
+        },
+        "input_mode": {
+            "slider": "Slider (visual control)",
+            "box": "Box (numeric input)"
         }
     }
 }
