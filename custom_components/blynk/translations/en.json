@@ -126,7 +126,6 @@
             "current": "Current",
             "voltage": "Voltage",
             "energy": "Energy",
-            "battery": "Battery",
             "motion": "Motion",
             "door": "Door",
             "window": "Window",
