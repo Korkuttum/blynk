@@ -60,6 +60,7 @@ After installation:
 **Official Documentation:**  
 [Blynk MQTT Authentication](https://docs.blynk.io/en/blynk.cloud-mqtt-api/device-mqtt-api/authentication)
 
+---
 ## Support
 
 If you find this integration helpful, consider supporting the development:
