@@ -43,6 +43,23 @@ After installation:
 
 ---
 
+> **⚠️ Important MQTT Limitation**
+
+> Blynk Cloud **does not allow multiple MQTT clients** to connect simultaneously using the same Auth Token.
+
+> If your physical device (ESP8266, ESP32, etc.) is connected to Blynk via MQTT, you **cannot** connect Home Assistant using MQTT with the same Auth Token. One of the connections will be rejected or disconnected.
+
+> **This integration supports both HTTP and MQTT modes.**
+
+> **Recommended Setup:**
+> - Device → **MQTT** (best for real-time performance)
+> - Home Assistant → **HTTP mode** (this integration)
+
+> This combination gives the most stable and conflict-free operation.
+
+**Official Documentation:**  
+[Blynk MQTT Authentication](https://docs.blynk.io/en/blynk.cloud-mqtt-api/device-mqtt-api/authentication)
+
 ## Support
 
 If you find this integration helpful, consider supporting the development:
