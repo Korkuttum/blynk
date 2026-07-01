@@ -1,0 +1,141 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Blynk Kurulumu",
+                "description": "Blynk kimlik doğrulama tokenınızı girin ve bağlantı yöntemini seçin",
+                "data": {
+                    "token": "Kimlik Doğrulama Token",
+                    "use_mqtt": "MQTT'yi Etkinleştir (Anlık Güncellemeler)"
+                },
+                "data_description": {
+                    "token": "Blynk uygulamasından aldığınız 32 karakterlik kimlik doğrulama token",
+                    "use_mqtt": "MQTT desteği anlık, gerçek zamanlı güncellemeler sağlar. Ancak sürekli değişen sensörleriniz varsa API limitine takılabilirsiniz. Ücretsiz Blynk hesapları ayda 200.000 API çağrısı ile sınırlıdır."
+                }
+            },
+            "mqtt_config": {
+                "title": "MQTT Yapılandırması",
+                "description": "Gerçek zamanlı iletişim için MQTT broker ayarlarını yapılandırın",
+                "data": {
+                    "mqtt_broker": "MQTT Broker",
+                    "mqtt_port": "MQTT Port"
+                },
+                "data_description": {
+                    "mqtt_broker": "Blynk MQTT broker adresi (varsayılan: blynk.cloud)",
+                    "mqtt_port": "Güvenli MQTT portu (varsayılan: 8883 SSL/TLS için)"
+                }
+            },
+            "http_config": {
+                "title": "HTTP Yoklama Yapılandırması",
+                "description": "Blynk API'den ne sıklıkla veri çekileceğini ayarlayın",
+                "data": {
+                    "scan_interval": "Güncelleme Aralığı (saniye)"
+                },
+                "data_description": {
+                    "scan_interval": "Blynk Cloud'dan ne sıklıkla veri çekileceği (önerilen: 60-300 saniye)"
+                }
+            },
+            "connection": {
+                "title": "Bağlantı Test Ediliyor",
+                "description": "Bağlantı test edilirken ve pinler keşfedilirken lütfen bekleyin"
+            },
+            "pin_selection": {
+                "title": "Pin Yapılandırması",
+                "description": "Etkinleştirilecek pinleri seçin ve türlerini ayarlayın. Mevcut değerler referans için gösterilmiştir.",
+                "data": {
+                    "enable": "Etkinleştir",
+                    "type": "Tür"
+                }
+            },
+            "pin_config": {
+                "title": "{pin_number} Pinini Yapılandır",
+                "description": "{pin_number} pini için ayarları yapılandırın{mqtt_name}\nMevcut değer: {current_value}",
+                "data": {
+                    "pin_name": "Pin Adı",
+                    "device_class": "Cihaz Sınıfı",
+                    "unit": "Ölçüm Birimi",
+                    "min": "Minimum Değer",
+                    "max": "Maksimum Değer",
+                    "step": "Adım Boyutu",
+                    "mode": "Giriş Modu",
+                    "min_length": "Minimum Uzunluk",
+                    "max_length": "Maksimum Uzunluk",
+                    "pattern": "Doğrulama Deseni (regex)"
+                },
+                "data_description": {
+                    "pin_name": "Home Assistant'ta bu pin için kullanıcı dostu ad",
+                    "device_class": "Doğru ikon ve birim işleme için cihaz sınıfı",
+                    "unit": "Ölçüm birimi (sıcaklık, nem, vb.)",
+                    "min": "Bu girdi için izin verilen minimum değer",
+                    "max": "Bu girdi için izin verilen maksimum değer",
+                    "step": "Değer değişiklikleri için adım boyutu",
+                    "mode": "Girişin nasıl gösterileceği (görsel için kaydırıcı, sayısal için kutu)",
+                    "min_length": "Minimum metin uzunluğu",
+                    "max_length": "Maksimum metin uzunluğu",
+                    "pattern": "Metin doğrulama için düzenli ifade"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Blynk Cloud'a bağlanılamadı",
+            "invalid_token_format": "Kimlik doğrulama token en az 10 karakter olmalıdır",
+            "no_pins_found": "Pin bulunamadı - cihaz yapılandırmanızı kontrol edin",
+            "no_pins_selected": "En az bir pin seçilmelidir",
+            "mqtt_connection_failed": "MQTT bağlantısı başarısız - HTTP yoklamasına geri dönülüyor",
+            "invalid_scan_interval": "Güncelleme aralığı 10 ile 3600 saniye arasında olmalıdır",
+            "timeout": "Bağlantı zaman aşımı - internet bağlantınızı kontrol edin"
+        },
+        "abort": {
+            "already_configured": "Bu Blynk cihazı zaten yapılandırılmış"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Blynk Seçenekleri",
+                "description": "Cihaz ayarlarını güncelleyin",
+                "data": {
+                    "scan_interval": "Güncelleme Aralığı (saniye)",
+                    "mqtt_broker": "MQTT Broker",
+                    "mqtt_port": "MQTT Port"
+                },
+                "data_description": {
+                    "scan_interval": "Blynk Cloud'dan ne sıklıkla veri çekileceği (sadece HTTP modu için, önerilen: 60-300 saniye)",
+                    "mqtt_broker": "Gerçek zamanlı güncellemeler için Blynk MQTT broker adresi",
+                    "mqtt_port": "Güvenli MQTT portu (SSL/TLS için 8883)"
+                }
+            }
+        }
+    },
+    "selector": {
+        "pin_type": {
+            "options": {
+                "sensor": "Sensör (salt okunur sayısal/metin değerleri)",
+                "binary_sensor": "İkili Sensör (açık/kapalı, doğru/yanlış durumları)",
+                "switch": "Anahtar (açık/kapalı cihazları kontrol et)",
+                "input_number": "Sayı Girişi (ayarlanabilir sayısal değerler)",
+                "button": "Buton (eylemleri tetikle)",
+                "input_text": "Metin Girişi (metin/komut gönder)"
+            }
+        },
+        "device_class": {
+            "none": "Varsayılan (Genel)",
+            "temperature": "Sıcaklık",
+            "humidity": "Nem",
+            "power": "Güç",
+            "current": "Akım",
+            "voltage": "Voltaj",
+            "energy": "Enerji",
+            "motion": "Hareket",
+            "door": "Kapı",
+            "window": "Pencere",
+            "light": "Işık",
+            "switch": "Anahtar",
+            "outlet": "Priz"
+        },
+        "input_mode": {
+            "slider": "Kaydırıcı (görsel kontrol)",
+            "box": "Kutu (sayısal giriş)"
+        }
+    }
+}
