@@ -22,7 +22,7 @@
                 },
                 "data_description": {
                     "mqtt_broker": "Blynk MQTT broker adresi (varsayılan: blynk.cloud)",
-                    "mqtt_port": "Güvenli MQTT port (varsayılan: 8883 SSL/TLS için)"
+                    "mqtt_port": "Güvenli MQTT portu (varsayılan: 8883 SSL/TLS için)"
                 }
             },
             "http_config": {
@@ -105,6 +105,37 @@
                     "mqtt_port": "Güvenli MQTT portu (SSL/TLS için 8883)"
                 }
             }
+        }
+    },
+    "selector": {
+        "pin_type": {
+            "options": {
+                "sensor": "Sensör (salt okunur sayısal/metin değerleri)",
+                "binary_sensor": "İkili Sensör (açık/kapalı, doğru/yanlış durumları)",
+                "switch": "Anahtar (açık/kapalı cihazları kontrol et)",
+                "input_number": "Sayı Girişi (ayarlanabilir sayısal değerler)",
+                "button": "Buton (eylemleri tetikle)",
+                "input_text": "Metin Girişi (metin/komut gönder)"
+            }
+        },
+        "device_class": {
+            "none": "Varsayılan (Genel)",
+            "temperature": "Sıcaklık",
+            "humidity": "Nem",
+            "power": "Güç",
+            "current": "Akım",
+            "voltage": "Voltaj",
+            "energy": "Enerji",
+            "motion": "Hareket",
+            "door": "Kapı",
+            "window": "Pencere",
+            "light": "Işık",
+            "switch": "Anahtar",
+            "outlet": "Priz"
+        },
+        "input_mode": {
+            "slider": "Kaydırıcı (görsel kontrol)",
+            "box": "Kutu (sayısal giriş)"
         }
     }
 }

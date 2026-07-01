@@ -42,6 +42,7 @@ PLATFORMS: list[Platform] = [
     Platform.NUMBER,
     Platform.BUTTON,
     Platform.TEXT,
+    Platform.LIGHT,
 ]
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:

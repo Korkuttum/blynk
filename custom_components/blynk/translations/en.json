@@ -106,5 +106,36 @@
                 }
             }
         }
+    },
+    "selector": {
+        "pin_type": {
+            "options": {
+                "sensor": "Sensor (read-only numeric/text values)",
+                "binary_sensor": "Binary Sensor (on/off, true/false states)",
+                "switch": "Switch (control on/off devices)",
+                "input_number": "Number Input (adjustable numeric values)",
+                "button": "Button (trigger actions)",
+                "input_text": "Text Input (send text/commands)"
+            }
+        },
+        "device_class": {
+            "none": "Default (Generic)",
+            "temperature": "Temperature",
+            "humidity": "Humidity",
+            "power": "Power",
+            "current": "Current",
+            "voltage": "Voltage",
+            "energy": "Energy",
+            "motion": "Motion",
+            "door": "Door",
+            "window": "Window",
+            "light": "Light",
+            "switch": "Switch",
+            "outlet": "Outlet"
+        },
+        "input_mode": {
+            "slider": "Slider (visual control)",
+            "box": "Box (numeric input)"
+        }
     }
 }
