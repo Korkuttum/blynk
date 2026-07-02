@@ -45,6 +45,7 @@ PIN_TYPE_SWITCH: Final = "switch"
 PIN_TYPE_INPUT_NUMBER: Final = "input_number"
 PIN_TYPE_BUTTON: Final = "button"
 PIN_TYPE_INPUT_TEXT: Final = "input_text"
+PIN_TYPE_INPUT_LIGHT: Final = "input_light"
 
 PIN_TYPE_OPTIONS: Final = {
     PIN_TYPE_SENSOR: "Sensor",
@@ -52,7 +53,8 @@ PIN_TYPE_OPTIONS: Final = {
     PIN_TYPE_SWITCH: "Switch",
     PIN_TYPE_INPUT_NUMBER: "Input Number",
     PIN_TYPE_BUTTON: "Button",
-    PIN_TYPE_INPUT_TEXT: "Text Input"
+    PIN_TYPE_INPUT_TEXT: "Text Input",
+    PIN_TYPE_INPUT_LIGHT: "Light",
 }
 
 # Device Classes
